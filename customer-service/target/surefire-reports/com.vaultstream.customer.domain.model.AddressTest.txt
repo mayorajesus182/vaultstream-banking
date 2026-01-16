@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.vaultstream.customer.domain.model.AddressTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.084 s -- in com.vaultstream.customer.domain.model.AddressTest
