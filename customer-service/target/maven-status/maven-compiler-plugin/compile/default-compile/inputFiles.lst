@@ -1,0 +1,17 @@
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\application\command\CreateCustomerCommand.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\application\command\UpdateCustomerCommand.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\application\dto\CustomerDto.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\application\usecase\CustomerUseCase.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\domain\event\CustomerCreatedEvent.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\domain\event\CustomerStatusChangedEvent.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\domain\model\Address.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\domain\model\Customer.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\domain\model\CustomerStatus.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\domain\model\CustomerType.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\domain\repository\CustomerRepository.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\infrastructure\messaging\CustomerEventProducer.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\infrastructure\persistence\CustomerEntity.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\infrastructure\persistence\CustomerMapper.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\infrastructure\persistence\CustomerRepositoryAdapter.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\infrastructure\rest\CustomerController.java
+C:\Users\jesus\.gemini\antigravity\scratch\vaultstream-banking\customer-service\src\main\java\com\vaultstream\customer\infrastructure\rest\exception\GlobalExceptionHandler.java

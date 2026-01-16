@@ -1,0 +1,260 @@
+# ============================================================
+# VaultStream Banking - Development Infrastructure
+# ============================================================
+# Usage:
+#   docker-compose up -d           # Start all services
+#   docker-compose down -v         # Stop and remove volumes
+#   docker-compose logs -f kafka   # View Kafka logs
+# ============================================================
+
+services:
+  # ========================================
+  # PostgreSQL - Customer Service Database
+  # ========================================
+  postgres-customer:
+    image: postgres:16-alpine
+    container_name: vaultstream-postgres-customer
+    environment:
+      POSTGRES_DB: customer_db
+      POSTGRES_USER: customer_user
+      POSTGRES_PASSWORD: customer_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_customer_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U customer_user -d customer_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vaultstream-network
+
+  # ========================================
+  # PostgreSQL - Account Service Database
+  # ========================================
+  postgres-account:
+    image: postgres:16-alpine
+    container_name: vaultstream-postgres-account
+    environment:
+      POSTGRES_DB: account_db
+      POSTGRES_USER: account_user
+      POSTGRES_PASSWORD: account_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_account_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U account_user -d account_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vaultstream-network
+
+  # ========================================
+  # PostgreSQL - Transaction Service Database
+  # ========================================
+  postgres-transaction:
+    image: postgres:16-alpine
+    container_name: vaultstream-postgres-transaction
+    environment:
+      POSTGRES_DB: transaction_db
+      POSTGRES_USER: transaction_user
+      POSTGRES_PASSWORD: transaction_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_transaction_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transaction_user -d transaction_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vaultstream-network
+
+  # ========================================
+  # Apache Kafka (KRaft mode - no Zookeeper)
+  # ========================================
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: vaultstream-kafka
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      CLUSTER_ID: vaultstream-cluster-001
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - vaultstream-network
+
+  # ========================================
+  # Kafka UI - For development
+  # ========================================
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: vaultstream-kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: vaultstream
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    depends_on:
+      - kafka
+    networks:
+      - vaultstream-network
+
+  # ========================================
+  # Redis - Caching
+  # ========================================
+  redis:
+    image: redis:7-alpine
+    container_name: vaultstream-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vaultstream-network
+
+  # ========================================
+  # Keycloak - Authentication
+  # ========================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: vaultstream-keycloak
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak_db
+      KC_DB_USERNAME: keycloak_user
+      KC_DB_PASSWORD: keycloak_pass
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8180
+    ports:
+      - "8180:8180"
+    depends_on:
+      postgres-keycloak:
+        condition: service_healthy
+    networks:
+      - vaultstream-network
+
+  postgres-keycloak:
+    image: postgres:16-alpine
+    container_name: vaultstream-postgres-keycloak
+    environment:
+      POSTGRES_DB: keycloak_db
+      POSTGRES_USER: keycloak_user
+      POSTGRES_PASSWORD: keycloak_pass
+    volumes:
+      - postgres_keycloak_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak_user -d keycloak_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vaultstream-network
+
+  # ========================================
+  # Jaeger - Distributed Tracing
+  # ========================================
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: vaultstream-jaeger
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686" # UI
+      - "14250:14250"
+      - "14268:14268"
+      - "14269:14269"
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - vaultstream-network
+
+  # ========================================
+  # Prometheus - Metrics
+  # ========================================
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: vaultstream-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    networks:
+      - vaultstream-network
+
+  # ========================================
+  # Grafana - Dashboards
+  # ========================================
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: vaultstream-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - vaultstream-network
+
+# ========================================
+# Volumes
+# ========================================
+volumes:
+  postgres_customer_data:
+  postgres_account_data:
+  postgres_transaction_data:
+  postgres_keycloak_data:
+  kafka_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+# ========================================
+# Network
+# ========================================
+networks:
+  vaultstream-network:
+    driver: bridge
