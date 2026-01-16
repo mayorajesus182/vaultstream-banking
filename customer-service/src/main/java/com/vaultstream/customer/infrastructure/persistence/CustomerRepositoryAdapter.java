@@ -61,7 +61,9 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
 
     @Override
     public Optional<Customer> findByEmail(String email) {
-        return em.createQuery("SELECT c FROM CustomerEntity c WHERE LOWER(c.email) = :email", CustomerEntity.class)
+        // Optimization: Removed LOWER(c.email) to allow use of idx_customer_email index.
+        // The domain ensures emails are stored in lowercase.
+        return em.createQuery("SELECT c FROM CustomerEntity c WHERE c.email = :email", CustomerEntity.class)
                 .setParameter("email", email.toLowerCase())
                 .getResultStream()
                 .findFirst()
@@ -115,7 +117,8 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
 
     @Override
     public boolean existsByEmail(String email) {
-        Long count = em.createQuery("SELECT COUNT(c) FROM CustomerEntity c WHERE LOWER(c.email) = :email", Long.class)
+        // Optimization: Removed LOWER(c.email) to allow use of idx_customer_email index.
+        Long count = em.createQuery("SELECT COUNT(c) FROM CustomerEntity c WHERE c.email = :email", Long.class)
                 .setParameter("email", email.toLowerCase())
                 .getSingleResult();
         return count > 0;

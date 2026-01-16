@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.vaultstream.customer.application.usecase.CustomerUseCaseTest$QueryTests
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.394 s -- in com.vaultstream.customer.application.usecase.CustomerUseCaseTest$QueryTests

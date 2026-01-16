@@ -1,0 +1,17 @@
+-------------------------------------------------------------------------------
+Test set: com.vaultstream.customer.application.usecase.CustomerUseCaseTest$SuspendCustomerTests
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.096 s <<< FAILURE! -- in com.vaultstream.customer.application.usecase.CustomerUseCaseTest$SuspendCustomerTests
+com.vaultstream.customer.application.usecase.CustomerUseCaseTest$SuspendCustomerTests.shouldSuspendCustomerWithReason -- Time elapsed: 0.088 s <<< FAILURE!
+Wanted but not invoked:
+customerEventProducer.publish(<any>);
+-> at com.vaultstream.customer.application.usecase.CustomerUseCaseTest$SuspendCustomerTests.shouldSuspendCustomerWithReason(CustomerUseCaseTest.java:236)
+Actually, there were zero interactions with this mock.
+
+	at com.vaultstream.customer.application.usecase.CustomerUseCaseTest$SuspendCustomerTests.shouldSuspendCustomerWithReason(CustomerUseCaseTest.java:236)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at io.quarkus.test.junit.QuarkusTestExtension.runExtensionMethod(QuarkusTestExtension.java:967)
+	at io.quarkus.test.junit.QuarkusTestExtension.interceptTestMethod(QuarkusTestExtension.java:817)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
