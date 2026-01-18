@@ -7,8 +7,8 @@ import javax.annotation.processing.Generated;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-01-16T09:57:57-0400",
-    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.9 (Eclipse Adoptium)"
+    date = "2026-01-18T16:57:12+0000",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.8 (Ubuntu)"
 )
 @ApplicationScoped
 public class CustomerMapperImpl implements CustomerMapper {
