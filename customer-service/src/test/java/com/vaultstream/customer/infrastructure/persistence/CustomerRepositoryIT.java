@@ -94,6 +94,22 @@ class CustomerRepositoryIT {
 
     @Test
     @Transactional
+    @DisplayName("findByEmail() should return customer when found by mixed case email")
+    void findByEmailShouldReturnCustomerMixedCase() {
+        // Given
+        Customer customer = createTestCustomer("find.by.email@example.com", "FIND-EMAIL-001");
+        customerRepository.save(customer);
+
+        // When
+        Optional<Customer> found = customerRepository.findByEmail("FIND.BY.EMAIL@EXAMPLE.COM");
+
+        // Then
+        assertThat(found).isPresent();
+        assertThat(found.get().getEmail()).isEqualTo("find.by.email@example.com");
+    }
+
+    @Test
+    @Transactional
     @DisplayName("existsByEmail() should return true when email exists")
     void existsByEmailShouldReturnTrue() {
         // Given
