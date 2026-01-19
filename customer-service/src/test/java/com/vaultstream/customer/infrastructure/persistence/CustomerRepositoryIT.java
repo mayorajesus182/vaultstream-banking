@@ -83,6 +83,22 @@ class CustomerRepositoryIT {
 
     @Test
     @Transactional
+    @DisplayName("findByEmail() should return customer ignoring case")
+    void findByEmailShouldReturnCustomerIgnoringCase() {
+        // Given
+        Customer customer = createTestCustomer("mixed.case@example.com", "MIXED-001");
+        customerRepository.save(customer);
+
+        // When
+        Optional<Customer> found = customerRepository.findByEmail("MIXED.CASE@example.com");
+
+        // Then
+        assertThat(found).isPresent();
+        assertThat(found.get().getEmail()).isEqualTo("mixed.case@example.com");
+    }
+
+    @Test
+    @Transactional
     @DisplayName("findById() should return empty when not exists")
     void findByIdShouldReturnEmptyWhenNotExists() {
         // When
