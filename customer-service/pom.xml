@@ -117,6 +117,12 @@
             <artifactId>quarkus-redis-client</artifactId>
         </dependency>
 
+        <!-- Fault Tolerance (Circuit Breaker, Retry, Fallback) -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-smallrye-fault-tolerance</artifactId>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>io.quarkus</groupId>

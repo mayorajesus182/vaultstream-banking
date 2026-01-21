@@ -79,9 +79,13 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
 
     @Override
     public List<Customer> findAll(int page, int size) {
-        return em.createQuery("SELECT c FROM CustomerEntity c ORDER BY c.createdAt DESC", CustomerEntity.class)
+        // Using indexed column for ordering (idx_customer_created_at)
+        return em.createQuery(
+                "SELECT c FROM CustomerEntity c ORDER BY c.createdAt DESC",
+                CustomerEntity.class)
                 .setFirstResult(page * size)
                 .setMaxResults(size)
+                .setHint("org.hibernate.cacheable", true)
                 .getResultList()
                 .stream()
                 .map(mapper::toDomain)

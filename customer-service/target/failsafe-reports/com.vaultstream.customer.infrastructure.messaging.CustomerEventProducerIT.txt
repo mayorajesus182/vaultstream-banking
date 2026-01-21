@@ -1,0 +1,53 @@
+-------------------------------------------------------------------------------
+Test set: com.vaultstream.customer.infrastructure.messaging.CustomerEventProducerIT
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.638 s <<< FAILURE! -- in com.vaultstream.customer.infrastructure.messaging.CustomerEventProducerIT
+com.vaultstream.customer.infrastructure.messaging.CustomerEventProducerIT.shouldPublishEventToKafka -- Time elapsed: 0.459 s <<< ERROR!
+java.util.concurrent.CompletionException: io.netty.channel.AbstractChannel$AnnotatedConnectException: Connection refused: getsockopt: localhost/127.0.0.1:16379
+	at io.smallrye.mutiny.operators.uni.UniBlockingAwait.await(UniBlockingAwait.java:79)
+	at io.smallrye.mutiny.groups.UniAwait.atMost(UniAwait.java:65)
+	at io.smallrye.mutiny.groups.UniAwait.indefinitely(UniAwait.java:46)
+	at io.quarkus.cache.runtime.CacheInvalidateInterceptor.invalidateBlocking(CacheInvalidateInterceptor.java:73)
+	at io.quarkus.cache.runtime.CacheInvalidateInterceptor.intercept(CacheInvalidateInterceptor.java:38)
+	at io.quarkus.cache.runtime.CacheInvalidateInterceptor_Bean.intercept(Unknown Source)
+	at io.quarkus.arc.impl.InterceptorInvocation.invoke(InterceptorInvocation.java:42)
+	at io.quarkus.arc.impl.AroundInvokeInvocationContext.perform(AroundInvokeInvocationContext.java:30)
+	at io.quarkus.arc.impl.InvocationContexts.performAroundInvoke(InvocationContexts.java:27)
+	at com.vaultstream.customer.application.usecase.CustomerUseCase_Subclass.activateCustomer(Unknown Source)
+	at com.vaultstream.customer.application.usecase.CustomerUseCase_ClientProxy.activateCustomer(Unknown Source)
+	at com.vaultstream.customer.infrastructure.messaging.CustomerEventProducerIT.shouldPublishEventToKafka(CustomerEventProducerIT.java:54)
+	at com.vaultstream.customer.infrastructure.messaging.CustomerEventProducerIT_Subclass.shouldPublishEventToKafka$$superforward(Unknown Source)
+	at com.vaultstream.customer.infrastructure.messaging.CustomerEventProducerIT_Subclass$$function$$1.apply(Unknown Source)
+	at io.quarkus.arc.impl.AroundInvokeInvocationContext.proceed(AroundInvokeInvocationContext.java:73)
+	at io.quarkus.arc.impl.AroundInvokeInvocationContext.proceed(AroundInvokeInvocationContext.java:62)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorBase.invokeInOurTx(TransactionalInterceptorBase.java:136)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorBase.invokeInOurTx(TransactionalInterceptorBase.java:107)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorRequired.doIntercept(TransactionalInterceptorRequired.java:38)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorBase.intercept(TransactionalInterceptorBase.java:61)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorRequired.intercept(TransactionalInterceptorRequired.java:32)
+	at io.quarkus.narayana.jta.runtime.interceptor.TransactionalInterceptorRequired_Bean.intercept(Unknown Source)
+	at io.quarkus.arc.impl.InterceptorInvocation.invoke(InterceptorInvocation.java:42)
+	at io.quarkus.arc.impl.AroundInvokeInvocationContext.perform(AroundInvokeInvocationContext.java:30)
+	at io.quarkus.arc.impl.InvocationContexts.performAroundInvoke(InvocationContexts.java:27)
+	at com.vaultstream.customer.infrastructure.messaging.CustomerEventProducerIT_Subclass.shouldPublishEventToKafka(Unknown Source)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at io.quarkus.test.junit.QuarkusTestExtension.runExtensionMethod(QuarkusTestExtension.java:967)
+	at io.quarkus.test.junit.QuarkusTestExtension.interceptTestMethod(QuarkusTestExtension.java:817)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+Caused by: io.netty.channel.AbstractChannel$AnnotatedConnectException: Connection refused: getsockopt: localhost/127.0.0.1:16379
+Caused by: java.net.ConnectException: Connection refused: getsockopt
+	at java.base/sun.nio.ch.Net.pollConnect(Native Method)
+	at java.base/sun.nio.ch.Net.pollConnectNow(Net.java:682)
+	at java.base/sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:973)
+	at io.netty.channel.socket.nio.NioSocketChannel.doFinishConnect(NioSocketChannel.java:336)
+	at io.netty.channel.nio.AbstractNioChannel$AbstractNioUnsafe.finishConnect(AbstractNioChannel.java:339)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:776)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:724)
+	at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:650)
+	at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:562)
+	at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997)
+	at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+	at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+

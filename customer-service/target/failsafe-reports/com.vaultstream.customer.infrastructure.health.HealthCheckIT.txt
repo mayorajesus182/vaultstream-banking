@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.vaultstream.customer.infrastructure.health.HealthCheckIT
+-------------------------------------------------------------------------------
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 51.90 s -- in com.vaultstream.customer.infrastructure.health.HealthCheckIT

@@ -1,61 +1,117 @@
 package com.vaultstream.customer.infrastructure.security;
 
-import io.quarkus.redis.client.RedisClient;
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
-import io.vertx.redis.client.Response;
-import jakarta.inject.Inject;
+import io.quarkus.redis.datasource.RedisDataSource;
+import io.quarkus.redis.datasource.value.ValueCommands;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
+import java.lang.reflect.Field;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@QuarkusTest
+/**
+ * Unit tests for RateLimiterService.
+ * Tests both Redis-based and fallback in-memory rate limiting.
+ */
+@ExtendWith(MockitoExtension.class)
 @DisplayName("Rate Limiter Service")
 class RateLimiterServiceTest {
 
-    @Inject
+    @Mock
+    RedisDataSource redisDS;
+
+    @Mock
+    ValueCommands<String, Long> valueCommands;
+
+    @InjectMocks
     RateLimiterService rateLimiterService;
 
-    @InjectMock
-    RedisClient redisClient;
-
     @BeforeEach
-    void setup() {
-        // Mock redis expire to avoid NPE if called
-        Response okResponse = mock(Response.class);
-        when(redisClient.expire(anyString(), anyString())).thenReturn(okResponse);
+    void setup() throws Exception {
+        // Use lenient mocking since lazy init may or may not call this
+        lenient().when(redisDS.value(Long.class)).thenReturn(valueCommands);
+
+        // Set config properties via reflection
+        setField("requestLimit", 100);
+        setField("windowSeconds", 60);
+
+        // Directly inject valueCommands to bypass lazy init
+        setField("valueCommands", valueCommands);
+    }
+
+    private void setField(String fieldName, Object value) throws Exception {
+        Field field = RateLimiterService.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(rateLimiterService, value);
     }
 
     @Test
     @DisplayName("should allow request when limit not exceeded")
     void shouldAllowRequest() {
-        // Mock INCR returning 1
-        Response response = mock(Response.class);
-        when(response.toLong()).thenReturn(1L);
-        when(redisClient.incr(anyString())).thenReturn(response);
+        when(valueCommands.incr(anyString())).thenReturn(1L);
 
         boolean allowed = rateLimiterService.isAllowed("127.0.0.1");
 
         assertTrue(allowed);
-        verify(redisClient).incr(contains("127.0.0.1"));
+        verify(valueCommands).incr(contains("127.0.0.1"));
+        verify(valueCommands).setex(anyString(), eq(60L), eq(1L));
+    }
+
+    @Test
+    @DisplayName("should allow request at limit boundary")
+    void shouldAllowAtLimit() {
+        when(valueCommands.incr(anyString())).thenReturn(100L);
+
+        boolean allowed = rateLimiterService.isAllowed("127.0.0.1");
+
+        assertTrue(allowed);
     }
 
     @Test
     @DisplayName("should block request when limit exceeded")
     void shouldBlockRequest() {
-        // Mock INCR returning limit + 1
-        Response response = mock(Response.class);
-        when(response.toLong()).thenReturn(101L); // Default limit is 100
-        when(redisClient.incr(anyString())).thenReturn(response);
+        when(valueCommands.incr(anyString())).thenReturn(101L);
 
         boolean allowed = rateLimiterService.isAllowed("127.0.0.1");
 
         assertFalse(allowed);
+    }
+
+    @Test
+    @DisplayName("should use fallback when Redis fails")
+    void shouldUseFallbackOnRedisFailure() {
+        when(valueCommands.incr(anyString())).thenThrow(new RuntimeException("Redis connection failed"));
+
+        // First request to fallback should succeed
+        boolean allowed = rateLimiterService.isAllowed("127.0.0.1");
+
+        assertTrue(allowed);
+    }
+
+    @Test
+    @DisplayName("should return correct remaining count")
+    void shouldReturnRemainingCount() {
+        when(valueCommands.get(anyString())).thenReturn(30L);
+
+        long remaining = rateLimiterService.getRemaining("127.0.0.1");
+
+        assertEquals(70, remaining);
+    }
+
+    @Test
+    @DisplayName("should return full limit when key not found")
+    void shouldReturnFullLimitWhenKeyNotFound() {
+        when(valueCommands.get(anyString())).thenReturn(null);
+
+        long remaining = rateLimiterService.getRemaining("127.0.0.1");
+
+        assertEquals(100, remaining);
     }
 }

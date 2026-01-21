@@ -1,16 +1,17 @@
 package com.vaultstream.customer.infrastructure.rest;
 
-import io.quarkus.redis.client.RedisClient;
+import io.quarkus.redis.datasource.RedisDataSource;
+import io.quarkus.redis.datasource.value.ValueCommands;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
-import io.vertx.redis.client.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -22,22 +23,18 @@ class CustomerControllerIT {
     private static final String API_BASE = "/api/v1/customers";
 
     @InjectMock
-    RedisClient redisClient;
+    RedisDataSource redisDataSource;
 
+    @SuppressWarnings("unchecked")
     @BeforeEach
     void setup() {
-        // Mock Redis for Rate Limiting to always allow
-        Response response = mock(Response.class);
-        when(response.toLong()).thenReturn(1L);
-        when(redisClient.incr(anyString())).thenReturn(response);
+        // Mock Redis ValueCommands for Rate Limiting
+        ValueCommands<String, Long> valueCommands = mock(ValueCommands.class);
+        when(redisDataSource.value(Long.class)).thenReturn(valueCommands);
 
-        // Mock expire
-        when(redisClient.expire(anyString(), anyString())).thenReturn(response);
-
-        // Mock get for Health Check (if needed)
-        Response pong = mock(Response.class);
-        when(pong.toString()).thenReturn("PONG");
-        // But health check usually calls ping/echo.
+        // Always allow rate limit (return 1 for first request)
+        when(valueCommands.incr(anyString())).thenReturn(1L);
+        when(valueCommands.get(anyString())).thenReturn(1L);
     }
 
     @Test
