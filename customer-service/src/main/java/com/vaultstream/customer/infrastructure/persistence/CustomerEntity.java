@@ -88,6 +88,9 @@ public class CustomerEntity extends PanacheEntityBase {
     @Column(nullable = false, length = 20)
     private CustomerType type;
 
+    @Column(length = 500)
+    private String suspensionReason;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 

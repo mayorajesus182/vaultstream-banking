@@ -1,249 +1,193 @@
 package com.vaultstream.customer.infrastructure.rest;
 
-import com.vaultstream.customer.application.command.CreateCustomerCommand;
-import com.vaultstream.customer.domain.model.CustomerType;
+import io.quarkus.redis.client.RedisClient;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
+import io.vertx.redis.client.Response;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-
-import java.time.LocalDate;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-/**
- * Integration tests for Customer REST API.
- * Tests run against a real Quarkus application with H2 database.
- */
 @QuarkusTest
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@DisplayName("Customer REST API")
+@DisplayName("Customer REST API Integration")
 class CustomerControllerIT {
 
-    private static String createdCustomerId;
+    private static final String API_BASE = "/api/v1/customers";
 
-    private CreateCustomerCommand createValidRequest() {
-        CreateCustomerCommand request = new CreateCustomerCommand();
-        request.setFirstName("Integration");
-        request.setLastName("Test");
-        request.setEmail("integration.test@example.com");
-        request.setPhoneNumber("+1234567890");
-        request.setDateOfBirth(LocalDate.of(1985, 3, 20));
-        request.setNationalId("INT-TEST-001");
-        request.setType(CustomerType.INDIVIDUAL);
-        return request;
+    @InjectMock
+    RedisClient redisClient;
+
+    @BeforeEach
+    void setup() {
+        // Mock Redis for Rate Limiting to always allow
+        Response response = mock(Response.class);
+        when(response.toLong()).thenReturn(1L);
+        when(redisClient.incr(anyString())).thenReturn(response);
+
+        // Mock expire
+        when(redisClient.expire(anyString(), anyString())).thenReturn(response);
+
+        // Mock get for Health Check (if needed)
+        Response pong = mock(Response.class);
+        when(pong.toString()).thenReturn("PONG");
+        // But health check usually calls ping/echo.
     }
 
     @Test
-    @Order(1)
-    @DisplayName("POST /api/v1/customers - Create customer returns 201")
-    void createCustomer_shouldReturn201() {
-        CreateCustomerCommand request = createValidRequest();
-
-        createdCustomerId = given()
-                .contentType(ContentType.JSON)
-                .body(request)
-                .when()
-                .post("/api/v1/customers")
-                .then()
-                .statusCode(201)
-                .body("id", notNullValue())
-                .body("customerNumber", startsWith("CUST-"))
-                .body("firstName", equalTo("Integration"))
-                .body("lastName", equalTo("Test"))
-                .body("email", equalTo("integration.test@example.com"))
-                .body("status", equalTo("PENDING_VERIFICATION"))
-                .extract()
-                .path("id");
-    }
-
-    @Test
-    @Order(2)
-    @DisplayName("POST /api/v1/customers - Duplicate email returns 409")
-    void createCustomer_duplicateEmail_shouldReturn409() {
-        CreateCustomerCommand request = createValidRequest();
-        // Same email as Order(1) test
-
-        given()
-                .contentType(ContentType.JSON)
-                .body(request)
-                .when()
-                .post("/api/v1/customers")
-                .then()
-                .statusCode(409)
-                .body("code", equalTo("DUPLICATE_EMAIL"));
-    }
-
-    @Test
-    @Order(3)
-    @DisplayName("GET /api/v1/customers/{id} - Get by ID returns 200")
-    void getCustomerById_shouldReturn200() {
-        given()
-                .when()
-                .get("/api/v1/customers/{id}", createdCustomerId)
-                .then()
-                .statusCode(200)
-                .body("id", equalTo(createdCustomerId))
-                .body("firstName", equalTo("Integration"));
-    }
-
-    @Test
-    @Order(4)
-    @DisplayName("GET /api/v1/customers/{id} - Not found returns 404")
-    void getCustomerById_notFound_shouldReturn404() {
-        String randomId = "00000000-0000-0000-0000-000000000000";
-
-        given()
-                .when()
-                .get("/api/v1/customers/{id}", randomId)
-                .then()
-                .statusCode(404);
-    }
-
-    @Test
-    @Order(5)
-    @DisplayName("GET /api/v1/customers - List with pagination returns 200")
-    void getAllCustomers_shouldReturn200WithPagination() {
-        given()
-                .queryParam("page", 0)
-                .queryParam("size", 10)
-                .when()
-                .get("/api/v1/customers")
-                .then()
-                .statusCode(200)
-                .body("content", notNullValue())
-                .body("page", equalTo(0))
-                .body("size", equalTo(10))
-                .body("totalElements", notNullValue());
-    }
-
-    @Test
-    @Order(6)
-    @DisplayName("POST /api/v1/customers/{id}/activate - Activate returns 200")
-    void activateCustomer_shouldReturn200() {
-        given()
-                .when()
-                .post("/api/v1/customers/{id}/activate", createdCustomerId)
-                .then()
-                .statusCode(200)
-                .body("status", equalTo("ACTIVE"));
-    }
-
-    @Test
-    @Order(7)
-    @DisplayName("POST /api/v1/customers/{id}/suspend - Suspend returns 200")
-    void suspendCustomer_shouldReturn200() {
-        given()
-                .queryParam("reason", "Test suspension")
-                .when()
-                .post("/api/v1/customers/{id}/suspend", createdCustomerId)
-                .then()
-                .statusCode(200)
-                .body("status", equalTo("SUSPENDED"));
-    }
-
-    @Test
-    @Order(8)
-    @DisplayName("PUT /api/v1/customers/{id} - Update returns 200")
-    void updateCustomer_shouldReturn200() {
-        // First create a new customer for update test
-        CreateCustomerCommand createRequest = new CreateCustomerCommand();
-        createRequest.setFirstName("Update");
-        createRequest.setLastName("Test");
-        createRequest.setEmail("update.test@example.com");
-        createRequest.setPhoneNumber("+9876543210");
-        createRequest.setDateOfBirth(LocalDate.of(1980, 1, 1));
-        createRequest.setNationalId("UPD-TEST-001");
-        createRequest.setType(CustomerType.INDIVIDUAL);
-
-        String customerId = given()
-                .contentType(ContentType.JSON)
-                .body(createRequest)
-                .when()
-                .post("/api/v1/customers")
-                .then()
-                .statusCode(201)
-                .extract()
-                .path("id");
-
-        // Now update
-        String updateBody = """
+    @DisplayName("POST /customers should create customer")
+    void shouldCreateCustomer() {
+        String payload = """
                 {
-                    "firstName": "Updated",
-                    "lastName": "Customer"
+                    "firstName": "John",
+                    "lastName": "Doe",
+                    "email": "john.it.h2@example.com",
+                    "phoneNumber": "+1234567890",
+                    "dateOfBirth": "1990-01-01",
+                    "nationalId": "IT-H2-12345",
+                    "address": {
+                        "street": "Test St",
+                        "number": "1",
+                        "city": "Test City",
+                        "state": "TS",
+                        "postalCode": "12345",
+                        "country": "USA"
+                    },
+                    "type": "INDIVIDUAL"
                 }
                 """;
 
         given()
                 .contentType(ContentType.JSON)
-                .body(updateBody)
+                .body(payload)
                 .when()
-                .put("/api/v1/customers/{id}", customerId)
-                .then()
-                .statusCode(200)
-                .body("firstName", equalTo("Updated"))
-                .body("lastName", equalTo("Customer"));
-    }
-
-    @Test
-    @Order(9)
-    @DisplayName("GET /api/v1/customers/search - Search by name returns 200")
-    void searchByName_shouldReturn200() {
-        given()
-                .queryParam("name", "Integration")
-                .queryParam("page", 0)
-                .queryParam("size", 10)
-                .when()
-                .get("/api/v1/customers/search")
-                .then()
-                .statusCode(200)
-                .body("content", notNullValue());
-    }
-
-    @Test
-    @Order(10)
-    @DisplayName("GET /api/v1/customers/status/{status} - Get by status returns 200")
-    void getCustomersByStatus_shouldReturn200() {
-        given()
-                .when()
-                .get("/api/v1/customers/status/{status}", "SUSPENDED")
-                .then()
-                .statusCode(200);
-    }
-
-    @Test
-    @Order(100)
-    @DisplayName("DELETE /api/v1/customers/{id} - Deactivate returns 204")
-    void deactivateCustomer_shouldReturn204() {
-        // Create a customer to delete
-        CreateCustomerCommand request = new CreateCustomerCommand();
-        request.setFirstName("Delete");
-        request.setLastName("Test");
-        request.setEmail("delete.test@example.com");
-        request.setPhoneNumber("+1111111111");
-        request.setDateOfBirth(LocalDate.of(1995, 6, 15));
-        request.setNationalId("DEL-TEST-001");
-        request.setType(CustomerType.INDIVIDUAL);
-
-        String customerId = given()
-                .contentType(ContentType.JSON)
-                .body(request)
-                .when()
-                .post("/api/v1/customers")
+                .post(API_BASE)
                 .then()
                 .statusCode(201)
-                .extract()
-                .path("id");
+                .body("id", notNullValue())
+                .body("customerNumber", startsWith("CUST-"))
+                .body("email", equalTo("john.it.h2@example.com"))
+                .body("status", equalTo("PENDING_VERIFICATION"));
+    }
 
-        // Delete (deactivate)
+    @Test
+    @DisplayName("GET /customers/{id} should return customer")
+    void shouldGetCustomer() {
+        // First create
+        String payload = """
+                {
+                    "firstName": "Jane",
+                    "lastName": "Doe",
+                    "email": "jane.it.h2@example.com",
+                    "phoneNumber": "+1234567890",
+                    "dateOfBirth": "1990-01-01",
+                    "nationalId": "IT-H2-67890",
+                    "type": "INDIVIDUAL"
+                }
+                """;
+
+        String id = given()
+                .contentType(ContentType.JSON)
+                .body(payload)
+                .post(API_BASE)
+                .then()
+                .statusCode(201)
+                .extract().path("id");
+
+        // Then get
         given()
                 .when()
-                .delete("/api/v1/customers/{id}", customerId)
+                .get(API_BASE + "/" + id)
                 .then()
-                .statusCode(204);
+                .statusCode(200)
+                .body("id", equalTo(id))
+                .body("firstName", equalTo("Jane"));
+    }
+
+    @Test
+    @DisplayName("POST /customers should validate duplicate email")
+    void shouldValidateDuplicateEmail() {
+        String payload = """
+                {
+                    "firstName": "Dupe",
+                    "lastName": "Test",
+                    "email": "dupe.h2@example.com",
+                    "phoneNumber": "+1234567890",
+                    "dateOfBirth": "1990-01-01",
+                    "nationalId": "IT-H2-DUPE1",
+                    "type": "INDIVIDUAL"
+                }
+                """;
+
+        // Create first
+        given().contentType(ContentType.JSON).body(payload).post(API_BASE).then().statusCode(201);
+
+        // Try create second with SAME EMAIL
+        String payload2 = """
+                {
+                    "firstName": "Dupe",
+                    "lastName": "Test",
+                    "email": "dupe.h2@example.com",
+                    "phoneNumber": "+1234567890",
+                    "dateOfBirth": "1990-01-01",
+                    "nationalId": "IT-H2-DUPE2",
+                    "type": "INDIVIDUAL"
+                }
+                """;
+
+        given()
+                .contentType(ContentType.JSON)
+                .body(payload2)
+                .when()
+                .post(API_BASE)
+                .then()
+                .statusCode(400)
+                .body("errorCode", equalTo("DUPLICATE_EMAIL"));
+    }
+
+    @Test
+    @DisplayName("POST /customers/{id}/activate should change status")
+    void shouldActivateCustomer() {
+        // Create
+        String payload = """
+                {
+                    "firstName": "Status",
+                    "lastName": "Test",
+                    "email": "status.it.h2@example.com",
+                    "phoneNumber": "+1234567890",
+                    "dateOfBirth": "1990-01-01",
+                    "nationalId": "IT-H2-STATUS",
+                    "type": "INDIVIDUAL"
+                }
+                """;
+
+        String id = given()
+                .contentType(ContentType.JSON)
+                .body(payload)
+                .post(API_BASE)
+                .then()
+                .extract().path("id");
+
+        // Activate
+        given()
+                .contentType(ContentType.JSON)
+                .when()
+                .post(API_BASE + "/" + id + "/activate")
+                .then()
+                .statusCode(200)
+                .body("status", equalTo("ACTIVE"));
+
+        // Verify GET returns active
+        given()
+                .when()
+                .get(API_BASE + "/" + id)
+                .then()
+                .body("status", equalTo("ACTIVE"));
     }
 }

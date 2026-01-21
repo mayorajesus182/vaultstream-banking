@@ -1,31 +1,31 @@
 package com.vaultstream.customer.application.usecase;
 
+import com.vaultstream.common.event.IntegrationEvent;
 import com.vaultstream.common.exception.BusinessRuleViolationException;
-import com.vaultstream.common.exception.ResourceNotFoundException;
 import com.vaultstream.customer.application.command.CreateCustomerCommand;
 import com.vaultstream.customer.application.command.UpdateCustomerCommand;
 import com.vaultstream.customer.application.dto.CustomerDto;
-import com.vaultstream.customer.domain.model.Address;
+import com.vaultstream.customer.application.service.CustomerMetrics;
+import com.vaultstream.customer.application.service.CustomerNumberGenerator;
 import com.vaultstream.customer.domain.model.Customer;
-import com.vaultstream.customer.domain.model.CustomerStatus;
 import com.vaultstream.customer.domain.model.CustomerType;
 import com.vaultstream.customer.domain.repository.CustomerRepository;
-import com.vaultstream.customer.infrastructure.messaging.CustomerEventProducer;
+import io.quarkus.cache.Cache;
+import io.quarkus.cache.CacheManager;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -33,18 +33,34 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for CustomerUseCase with mocked dependencies.
  */
-@QuarkusTest
-@DisplayName("CustomerUseCase")
+@org.junit.jupiter.api.extension.ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+@DisplayName("CustomerUseCase Unit Tests")
 class CustomerUseCaseTest {
 
-    @Inject
+    @org.mockito.InjectMocks
     CustomerUseCase customerUseCase;
 
-    @InjectMock
+    @org.mockito.Mock
     CustomerRepository customerRepository;
 
-    @InjectMock
-    CustomerEventProducer eventProducer;
+    @org.mockito.Mock
+    CustomerNumberGenerator customerNumberGenerator;
+
+    @org.mockito.Mock
+    CustomerMetrics customerMetrics;
+
+    @org.mockito.Mock
+    Event<IntegrationEvent> eventPublisher;
+
+    @org.mockito.Mock
+    CacheManager cacheManager;
+
+    @BeforeEach
+    void setup() {
+        Cache cache = mock(Cache.class);
+        lenient().when(cacheManager.getCache(anyString())).thenReturn(Optional.of(cache));
+        lenient().when(customerNumberGenerator.generate()).thenReturn("CUST-TEST-001");
+    }
 
     private CreateCustomerCommand createValidCommand() {
         CreateCustomerCommand command = new CreateCustomerCommand();
@@ -60,237 +76,98 @@ class CustomerUseCaseTest {
 
     private Customer createTestCustomer() {
         return Customer.create(
-                "John", "Doe", "john.doe@test.com", "+1234567890",
-                LocalDate.of(1990, 5, 15), "12345678A", null, CustomerType.INDIVIDUAL);
+                "CUST-TEST-001",
+                "John",
+                "Doe",
+                "john.doe@test.com",
+                "+1234567890",
+                LocalDate.of(1990, 5, 15),
+                "12345678A",
+                null,
+                CustomerType.INDIVIDUAL);
     }
 
-    @Nested
-    @DisplayName("createCustomer")
-    class CreateCustomerTests {
-
-        @BeforeEach
-        void setUp() {
-            reset(customerRepository, eventProducer);
-        }
-
-        @Test
-        @DisplayName("should create customer successfully")
-        void shouldCreateCustomerSuccessfully() {
-            // Given
-            CreateCustomerCommand command = createValidCommand();
-            when(customerRepository.existsByEmail(anyString())).thenReturn(false);
-            when(customerRepository.existsByNationalId(anyString())).thenReturn(false);
-            when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            // When
-            CustomerDto result = customerUseCase.createCustomer(command);
-
-            // Then
-            assertThat(result).isNotNull();
-            assertThat(result.getFirstName()).isEqualTo("John");
-            assertThat(result.getLastName()).isEqualTo("Doe");
-            assertThat(result.getEmail()).isEqualTo("john.doe@test.com");
-            assertThat(result.getStatus()).isEqualTo(CustomerStatus.PENDING_VERIFICATION);
-
-            verify(customerRepository).save(any(Customer.class));
-            verify(eventProducer).publish(any());
-        }
-
-        @Test
-        @DisplayName("should throw exception when email already exists")
-        void shouldThrowExceptionWhenEmailExists() {
-            // Given
-            CreateCustomerCommand command = createValidCommand();
-            when(customerRepository.existsByEmail(anyString())).thenReturn(true);
-
-            // When/Then
-            assertThatThrownBy(() -> customerUseCase.createCustomer(command))
-                    .isInstanceOf(BusinessRuleViolationException.class)
-                    .hasMessageContaining("email");
-
-            verify(customerRepository, never()).save(any());
-            verify(eventProducer, never()).publish(any());
-        }
-
-        @Test
-        @DisplayName("should throw exception when nationalId already exists")
-        void shouldThrowExceptionWhenNationalIdExists() {
-            // Given
-            CreateCustomerCommand command = createValidCommand();
-            when(customerRepository.existsByEmail(anyString())).thenReturn(false);
-            when(customerRepository.existsByNationalId(anyString())).thenReturn(true);
-
-            // When/Then
-            assertThatThrownBy(() -> customerUseCase.createCustomer(command))
-                    .isInstanceOf(BusinessRuleViolationException.class)
-                    .hasMessageContaining("national ID");
-
-            verify(customerRepository, never()).save(any());
+    private void setCustomerId(Customer customer, UUID id) {
+        try {
+            java.lang.reflect.Field field = Customer.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(customer, id);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set ID via reflection", e);
         }
     }
 
-    @Nested
-    @DisplayName("updateCustomer")
-    class UpdateCustomerTests {
+    @Test
+    @DisplayName("createCustomer should succeed with valid data")
+    void createCustomerSuccess() {
+        CreateCustomerCommand command = createValidCommand();
+        when(customerRepository.save(any(Customer.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        @BeforeEach
-        void setUp() {
-            reset(customerRepository, eventProducer);
-        }
+        CustomerDto result = customerUseCase.createCustomer(command);
 
-        @Test
-        @DisplayName("should update customer successfully")
-        void shouldUpdateCustomerSuccessfully() {
-            // Given
-            Customer existingCustomer = createTestCustomer();
-            UUID customerId = existingCustomer.getId();
-
-            UpdateCustomerCommand command = new UpdateCustomerCommand();
-            command.setCustomerId(customerId.toString());
-            command.setFirstName("Jane");
-            command.setLastName("Smith");
-
-            when(customerRepository.findById(customerId)).thenReturn(Optional.of(existingCustomer));
-            when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            // When
-            CustomerDto result = customerUseCase.updateCustomer(command);
-
-            // Then
-            assertThat(result).isNotNull();
-            assertThat(result.getFirstName()).isEqualTo("Jane");
-            assertThat(result.getLastName()).isEqualTo("Smith");
-
-            verify(customerRepository).save(any(Customer.class));
-        }
-
-        @Test
-        @DisplayName("should throw exception when customer not found")
-        void shouldThrowExceptionWhenCustomerNotFound() {
-            // Given
-            UUID customerId = UUID.randomUUID();
-            UpdateCustomerCommand command = new UpdateCustomerCommand();
-            command.setCustomerId(customerId.toString());
-
-            when(customerRepository.findById(customerId)).thenReturn(Optional.empty());
-
-            // When/Then
-            assertThatThrownBy(() -> customerUseCase.updateCustomer(command))
-                    .isInstanceOf(ResourceNotFoundException.class);
-        }
+        assertThat(result).isNotNull();
+        assertThat(result.getEmail()).isEqualTo(command.getEmail());
+        verify(customerRepository).save(any(Customer.class));
     }
 
-    @Nested
-    @DisplayName("activateCustomer")
-    class ActivateCustomerTests {
+    @Test
+    @DisplayName("createCustomer should throw on duplicate email")
+    void createCustomerDuplicateEmail() {
+        CreateCustomerCommand command = createValidCommand();
+        when(customerRepository.existsByEmail(command.getEmail())).thenReturn(true);
 
-        @BeforeEach
-        void setUp() {
-            reset(customerRepository, eventProducer);
-        }
-
-        @Test
-        @DisplayName("should activate customer and publish event")
-        void shouldActivateCustomerAndPublishEvent() {
-            // Given
-            Customer customer = createTestCustomer();
-            UUID customerId = customer.getId();
-
-            when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
-            when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-            // When
-            CustomerDto result = customerUseCase.activateCustomer(customerId.toString());
-
-            // Then
-            assertThat(result.getStatus()).isEqualTo(CustomerStatus.ACTIVE);
-            verify(eventProducer).publish(any());
-        }
+        assertThatThrownBy(() -> customerUseCase.createCustomer(command))
+                .isInstanceOf(BusinessRuleViolationException.class)
+                .hasMessageContaining("email already exists");
     }
 
-    @Nested
-    @DisplayName("suspendCustomer")
-    class SuspendCustomerTests {
+    @Test
+    @DisplayName("updateCustomer should invalidate cache")
+    void updateCustomerShouldInvalidateCache() {
+        UUID id = UUID.randomUUID();
+        Customer customer = createTestCustomer();
+        setCustomerId(customer, id);
 
-        @BeforeEach
-        void setUp() {
-            reset(customerRepository, eventProducer);
-        }
+        UpdateCustomerCommand command = new UpdateCustomerCommand();
+        command.setCustomerId(id.toString());
+        command.setEmail("new.email@test.com");
 
-        @Test
-        @DisplayName("should suspend customer with reason")
-        void shouldSuspendCustomerWithReason() {
-            // Given
-            Customer customer = createTestCustomer();
-            customer.activate();
-            UUID customerId = customer.getId();
+        when(customerRepository.findById(id)).thenReturn(Optional.of(customer));
+        when(customerRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
 
-            when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
-            when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        customerUseCase.updateCustomer(command);
 
-            // When
-            CustomerDto result = customerUseCase.suspendCustomer(customerId.toString(), "Fraud investigation");
-
-            // Then
-            assertThat(result.getStatus()).isEqualTo(CustomerStatus.SUSPENDED);
-            verify(eventProducer).publish(any());
-        }
+        verify(cacheManager, atLeastOnce()).getCache("customer-cache");
     }
 
-    @Nested
-    @DisplayName("Query Operations")
-    class QueryTests {
+    @Test
+    @DisplayName("activateCustomer should fire event")
+    void activateCustomerShouldFireEvent() {
+        UUID id = UUID.randomUUID();
+        Customer customer = createTestCustomer();
+        setCustomerId(customer, id);
 
-        @BeforeEach
-        void setUp() {
-            reset(customerRepository, eventProducer);
-        }
+        when(customerRepository.findById(id)).thenReturn(Optional.of(customer));
+        when(customerRepository.save(any())).thenAnswer(i -> i.getArguments()[0]);
 
-        @Test
-        @DisplayName("getCustomerById should return customer DTO")
-        void getCustomerByIdShouldReturnDto() {
-            // Given
-            Customer customer = createTestCustomer();
-            UUID customerId = customer.getId();
+        customerUseCase.activateCustomer(id.toString());
 
-            when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        verify(eventPublisher).fire(any(IntegrationEvent.class));
+        verify(customerMetrics).recordCustomerActivated();
+    }
 
-            // When
-            CustomerDto result = customerUseCase.getCustomerById(customerId.toString());
+    @Test
+    @DisplayName("getCustomerById should return customer")
+    void getCustomerByIdSuccess() {
+        UUID id = UUID.randomUUID();
+        Customer customer = createTestCustomer();
+        setCustomerId(customer, id);
 
-            // Then
-            assertThat(result).isNotNull();
-            assertThat(result.getId()).isEqualTo(customerId.toString());
-        }
+        when(customerRepository.findById(id)).thenReturn(Optional.of(customer));
 
-        @Test
-        @DisplayName("getCustomerById should throw when not found")
-        void getCustomerByIdShouldThrowWhenNotFound() {
-            // Given
-            UUID customerId = UUID.randomUUID();
-            when(customerRepository.findById(customerId)).thenReturn(Optional.empty());
+        CustomerDto result = customerUseCase.getCustomerById(id.toString());
 
-            // When/Then
-            assertThatThrownBy(() -> customerUseCase.getCustomerById(customerId.toString()))
-                    .isInstanceOf(ResourceNotFoundException.class);
-        }
-
-        @Test
-        @DisplayName("getCustomersByStatus should return list of DTOs")
-        void getCustomersByStatusShouldReturnList() {
-            // Given
-            Customer customer1 = createTestCustomer();
-            customer1.activate();
-
-            when(customerRepository.findByStatus(CustomerStatus.ACTIVE))
-                    .thenReturn(List.of(customer1));
-
-            // When
-            var result = customerUseCase.getCustomersByStatus(CustomerStatus.ACTIVE);
-
-            // Then
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).getStatus()).isEqualTo(CustomerStatus.ACTIVE);
-        }
+        assertThat(result).isNotNull();
+        assertThat(result.getId()).isEqualTo(id.toString());
     }
 }

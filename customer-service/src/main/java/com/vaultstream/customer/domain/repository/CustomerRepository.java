@@ -66,6 +66,11 @@ public interface CustomerRepository {
     boolean existsByNationalId(String nationalId);
 
     /**
+     * Check if customer number exists
+     */
+    boolean existsByCustomerNumber(String customerNumber);
+
+    /**
      * Count total customers
      */
     long count();
@@ -74,6 +79,11 @@ public interface CustomerRepository {
      * Count customers by status
      */
     long countByStatus(CustomerStatus status);
+
+    /**
+     * Count customers matching name search
+     */
+    long countByNameSearch(String name);
 
     /**
      * Delete customer by ID

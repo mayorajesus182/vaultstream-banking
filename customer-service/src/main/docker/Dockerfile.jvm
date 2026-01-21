@@ -1,0 +1,20 @@
+FROM eclipse-temurin:21-jre-alpine
+
+ENV LANGUAGE='en_US:en'
+
+# Create non-root user
+RUN addgroup -g 1001 -S vaultstream && \
+    adduser -u 1001 -S vaultstream -G vaultstream
+
+WORKDIR /deployments
+
+# Copy application artifacts (Quarkus fast-jar)
+COPY --chown=1001:1001 target/quarkus-app/lib/ /deployments/lib/
+COPY --chown=1001:1001 target/quarkus-app/*.jar /deployments/
+COPY --chown=1001:1001 target/quarkus-app/app/ /deployments/app/
+COPY --chown=1001:1001 target/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 8080
+USER 1001
+
+ENTRYPOINT [ "java", "-Dquarkus.http.host=0.0.0.0", "-jar", "/deployments/quarkus-run.jar" ]

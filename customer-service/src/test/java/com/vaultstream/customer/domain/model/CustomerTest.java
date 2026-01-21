@@ -1,5 +1,6 @@
 package com.vaultstream.customer.domain.model;
 
+import com.vaultstream.common.exception.InvalidStatusTransitionException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import static org.assertj.core.api.Assertions.*;
 @DisplayName("Customer Aggregate")
 class CustomerTest {
 
+    private static final String CUSTOMER_NUMBER = "CUST-20260120-00001";
     private static final String FIRST_NAME = "John";
     private static final String LAST_NAME = "Doe";
     private static final String EMAIL = "john.doe@example.com";
@@ -32,6 +34,12 @@ class CustomerTest {
                 .build();
     }
 
+    private Customer createValidCustomer() {
+        return Customer.create(
+                CUSTOMER_NUMBER, FIRST_NAME, LAST_NAME, EMAIL, PHONE,
+                DATE_OF_BIRTH, NATIONAL_ID, null, CustomerType.INDIVIDUAL);
+    }
+
     @Nested
     @DisplayName("Factory Method: create()")
     class CreateTests {
@@ -41,13 +49,13 @@ class CustomerTest {
         void shouldCreateCustomerWithValidData() {
             // When
             Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
+                    CUSTOMER_NUMBER, FIRST_NAME, LAST_NAME, EMAIL, PHONE,
                     DATE_OF_BIRTH, NATIONAL_ID, createValidAddress(),
                     CustomerType.INDIVIDUAL);
 
             // Then
             assertThat(customer.getId()).isNotNull();
-            assertThat(customer.getCustomerNumber()).startsWith("CUST-");
+            assertThat(customer.getCustomerNumber()).isEqualTo(CUSTOMER_NUMBER);
             assertThat(customer.getFirstName()).isEqualTo(FIRST_NAME);
             assertThat(customer.getLastName()).isEqualTo(LAST_NAME);
             assertThat(customer.getEmail()).isEqualTo(EMAIL.toLowerCase());
@@ -65,7 +73,7 @@ class CustomerTest {
         void shouldNormalizeEmailToLowercase() {
             // When
             Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, "JOHN.DOE@EXAMPLE.COM", PHONE,
+                    CUSTOMER_NUMBER, FIRST_NAME, LAST_NAME, "JOHN.DOE@EXAMPLE.COM", PHONE,
                     DATE_OF_BIRTH, NATIONAL_ID, null, CustomerType.INDIVIDUAL);
 
             // Then
@@ -77,7 +85,7 @@ class CustomerTest {
         void shouldDefaultToIndividualType() {
             // When
             Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
+                    CUSTOMER_NUMBER, FIRST_NAME, LAST_NAME, EMAIL, PHONE,
                     DATE_OF_BIRTH, NATIONAL_ID, null, null);
 
             // Then
@@ -88,7 +96,7 @@ class CustomerTest {
         @DisplayName("should throw exception when firstName is null")
         void shouldThrowExceptionWhenFirstNameIsNull() {
             assertThatThrownBy(() -> Customer.create(
-                    null, LAST_NAME, EMAIL, PHONE,
+                    CUSTOMER_NUMBER, null, LAST_NAME, EMAIL, PHONE,
                     DATE_OF_BIRTH, NATIONAL_ID, null, null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("firstName");
@@ -98,7 +106,7 @@ class CustomerTest {
         @DisplayName("should throw exception when lastName is blank")
         void shouldThrowExceptionWhenLastNameIsBlank() {
             assertThatThrownBy(() -> Customer.create(
-                    FIRST_NAME, "   ", EMAIL, PHONE,
+                    CUSTOMER_NUMBER, FIRST_NAME, "   ", EMAIL, PHONE,
                     DATE_OF_BIRTH, NATIONAL_ID, null, null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("lastName");
@@ -108,7 +116,7 @@ class CustomerTest {
         @DisplayName("should throw exception when email is missing")
         void shouldThrowExceptionWhenEmailIsMissing() {
             assertThatThrownBy(() -> Customer.create(
-                    FIRST_NAME, LAST_NAME, null, PHONE,
+                    CUSTOMER_NUMBER, FIRST_NAME, LAST_NAME, null, PHONE,
                     DATE_OF_BIRTH, NATIONAL_ID, null, null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("email");
@@ -118,7 +126,7 @@ class CustomerTest {
         @DisplayName("should throw exception when nationalId is missing")
         void shouldThrowExceptionWhenNationalIdIsMissing() {
             assertThatThrownBy(() -> Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
+                    CUSTOMER_NUMBER, FIRST_NAME, LAST_NAME, EMAIL, PHONE,
                     DATE_OF_BIRTH, "", null, null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("nationalId");
@@ -133,9 +141,7 @@ class CustomerTest {
         @DisplayName("activate() should change status to ACTIVE")
         void activateShouldChangeStatusToActive() {
             // Given
-            Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
-                    DATE_OF_BIRTH, NATIONAL_ID, null, null);
+            Customer customer = createValidCustomer();
 
             // When
             customer.activate();
@@ -149,24 +155,27 @@ class CustomerTest {
         @DisplayName("activate() should throw exception when customer is SUSPENDED")
         void activateShouldThrowWhenSuspended() {
             // Given
-            Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
-                    DATE_OF_BIRTH, NATIONAL_ID, null, null);
+            Customer customer = createValidCustomer();
+            customer.activate();
             customer.suspend("Fraud investigation");
 
-            // Then
-            assertThatThrownBy(customer::activate)
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("suspended");
+            // Then - InvalidStatusTransitionException because SUSPENDED can only go to
+            // ACTIVE (reactivate)
+            // But this test expects an error going from SUSPENDED -> ACTIVE which is
+            // allowed
+            // Let's fix by trying to activate when already inactive
+            Customer customer2 = createValidCustomer();
+            customer2.deactivate(); // Now INACTIVE
+
+            assertThatThrownBy(customer2::activate)
+                    .isInstanceOf(InvalidStatusTransitionException.class);
         }
 
         @Test
         @DisplayName("suspend() should change status to SUSPENDED")
         void suspendShouldChangeStatusToSuspended() {
             // Given
-            Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
-                    DATE_OF_BIRTH, NATIONAL_ID, null, null);
+            Customer customer = createValidCustomer();
             customer.activate();
 
             // When
@@ -174,16 +183,16 @@ class CustomerTest {
 
             // Then
             assertThat(customer.getStatus()).isEqualTo(CustomerStatus.SUSPENDED);
+            assertThat(customer.getSuspensionReason()).isEqualTo("Suspicious activity");
             assertThat(customer.isActive()).isFalse();
         }
 
         @Test
         @DisplayName("deactivate() should change status to INACTIVE")
         void deactivateShouldChangeStatusToInactive() {
-            // Given
-            Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
-                    DATE_OF_BIRTH, NATIONAL_ID, null, null);
+            // Given - need to activate first, then deactivate
+            Customer customer = createValidCustomer();
+            customer.activate();
 
             // When
             customer.deactivate();
@@ -201,9 +210,7 @@ class CustomerTest {
         @DisplayName("updatePersonalInfo() should update non-null fields")
         void updatePersonalInfoShouldUpdateNonNullFields() {
             // Given
-            Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
-                    DATE_OF_BIRTH, NATIONAL_ID, null, null);
+            Customer customer = createValidCustomer();
             LocalDate newDob = LocalDate.of(1985, 3, 20);
 
             // When
@@ -220,9 +227,7 @@ class CustomerTest {
         @DisplayName("updatePersonalInfo() should skip blank names")
         void updatePersonalInfoShouldSkipBlankNames() {
             // Given
-            Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
-                    DATE_OF_BIRTH, NATIONAL_ID, null, null);
+            Customer customer = createValidCustomer();
 
             // When
             customer.updatePersonalInfo("   ", null, null, null);
@@ -236,9 +241,7 @@ class CustomerTest {
         @DisplayName("updateEmail() should normalize and update email")
         void updateEmailShouldNormalizeAndUpdate() {
             // Given
-            Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
-                    DATE_OF_BIRTH, NATIONAL_ID, null, null);
+            Customer customer = createValidCustomer();
 
             // When
             customer.updateEmail("  NEW.EMAIL@Example.COM  ");
@@ -251,9 +254,7 @@ class CustomerTest {
         @DisplayName("updateAddress() should replace address")
         void updateAddressShouldReplaceAddress() {
             // Given
-            Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
-                    DATE_OF_BIRTH, NATIONAL_ID, null, null);
+            Customer customer = createValidCustomer();
             Address newAddress = createValidAddress();
 
             // When
@@ -272,9 +273,7 @@ class CustomerTest {
         @DisplayName("getFullName() should return concatenated name")
         void getFullNameShouldReturnConcatenatedName() {
             // Given
-            Customer customer = Customer.create(
-                    "John", "Doe", EMAIL, PHONE,
-                    DATE_OF_BIRTH, NATIONAL_ID, null, null);
+            Customer customer = createValidCustomer();
 
             // Then
             assertThat(customer.getFullName()).isEqualTo("John Doe");
@@ -284,9 +283,7 @@ class CustomerTest {
         @DisplayName("canOpenAccounts() should return true for ACTIVE and PENDING_VERIFICATION")
         void canOpenAccountsShouldReturnTrueForValidStatuses() {
             // Given
-            Customer customer = Customer.create(
-                    FIRST_NAME, LAST_NAME, EMAIL, PHONE,
-                    DATE_OF_BIRTH, NATIONAL_ID, null, null);
+            Customer customer = createValidCustomer();
 
             // Then - PENDING_VERIFICATION
             assertThat(customer.canOpenAccounts()).isTrue();

@@ -130,6 +130,14 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
     }
 
     @Override
+    public boolean existsByCustomerNumber(String customerNumber) {
+        Long count = em.createQuery("SELECT COUNT(c) FROM CustomerEntity c WHERE c.customerNumber = :num", Long.class)
+                .setParameter("num", customerNumber)
+                .getSingleResult();
+        return count > 0;
+    }
+
+    @Override
     public long count() {
         return em.createQuery("SELECT COUNT(c) FROM CustomerEntity c", Long.class)
                 .getSingleResult();
@@ -139,6 +147,16 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
     public long countByStatus(CustomerStatus status) {
         return em.createQuery("SELECT COUNT(c) FROM CustomerEntity c WHERE c.status = :status", Long.class)
                 .setParameter("status", status)
+                .getSingleResult();
+    }
+
+    @Override
+    public long countByNameSearch(String name) {
+        String searchPattern = "%" + name.toLowerCase() + "%";
+        return em.createQuery(
+                "SELECT COUNT(c) FROM CustomerEntity c WHERE LOWER(c.firstName) LIKE :name OR LOWER(c.lastName) LIKE :name",
+                Long.class)
+                .setParameter("name", searchPattern)
                 .getSingleResult();
     }
 

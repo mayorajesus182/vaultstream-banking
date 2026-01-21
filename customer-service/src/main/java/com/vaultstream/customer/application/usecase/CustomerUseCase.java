@@ -13,6 +13,11 @@ import com.vaultstream.customer.domain.model.Customer;
 import com.vaultstream.customer.domain.model.CustomerStatus;
 import com.vaultstream.customer.domain.repository.CustomerRepository;
 
+import io.quarkus.cache.CacheInvalidate;
+import io.quarkus.cache.CacheKey;
+import io.quarkus.cache.CacheManager;
+import io.quarkus.cache.CacheResult;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
@@ -37,6 +42,15 @@ public class CustomerUseCase {
 
         @Inject
         Event<com.vaultstream.common.event.IntegrationEvent> eventPublisher;
+
+        @Inject
+        com.vaultstream.customer.application.service.CustomerNumberGenerator customerNumberGenerator;
+
+        @Inject
+        com.vaultstream.customer.application.service.CustomerMetrics customerMetrics;
+
+        @Inject
+        CacheManager cacheManager;
 
         // ========================================
         // Commands
@@ -74,8 +88,12 @@ public class CustomerUseCase {
                                         .build();
                 }
 
+                // Generate unique customer number
+                String customerNumber = customerNumberGenerator.generate();
+
                 // Create domain entity
                 Customer customer = Customer.create(
+                                customerNumber,
                                 command.getFirstName(),
                                 command.getLastName(),
                                 command.getEmail(),
@@ -102,6 +120,9 @@ public class CustomerUseCase {
                                 saved.getStatus());
 
                 eventPublisher.fire(event);
+
+                // Record metrics
+                customerMetrics.recordCustomerCreated();
 
                 return CustomerDto.fromEntity(saved);
         }
@@ -149,6 +170,13 @@ public class CustomerUseCase {
                 Customer saved = customerRepository.save(customer);
                 log.info("Customer updated: {}", saved.getId());
 
+                // Record metrics
+                customerMetrics.recordCustomerUpdated();
+
+                // Manually invalidate cache
+                cacheManager.getCache("customer-cache")
+                                .ifPresent(cache -> cache.invalidate(command.getCustomerId()));
+
                 return CustomerDto.fromEntity(saved);
         }
 
@@ -156,7 +184,8 @@ public class CustomerUseCase {
          * Activate a customer
          */
         @Transactional
-        public CustomerDto activateCustomer(String customerId) {
+        @CacheInvalidate(cacheName = "customer-cache")
+        public CustomerDto activateCustomer(@CacheKey String customerId) {
                 log.info("Activating customer: {}", customerId);
 
                 Customer customer = customerRepository.findById(UUID.fromString(customerId))
@@ -178,6 +207,9 @@ public class CustomerUseCase {
 
                 eventPublisher.fire(event);
 
+                // Record metrics
+                customerMetrics.recordCustomerActivated();
+
                 return CustomerDto.fromEntity(saved);
         }
 
@@ -185,7 +217,8 @@ public class CustomerUseCase {
          * Suspend a customer
          */
         @Transactional
-        public CustomerDto suspendCustomer(String customerId, String reason) {
+        @CacheInvalidate(cacheName = "customer-cache")
+        public CustomerDto suspendCustomer(@CacheKey String customerId, String reason) {
                 log.info("Suspending customer: {} - Reason: {}", customerId, reason);
 
                 Customer customer = customerRepository.findById(UUID.fromString(customerId))
@@ -207,6 +240,9 @@ public class CustomerUseCase {
 
                 eventPublisher.fire(event);
 
+                // Record metrics
+                customerMetrics.recordCustomerSuspended();
+
                 return CustomerDto.fromEntity(saved);
         }
 
@@ -214,7 +250,8 @@ public class CustomerUseCase {
          * Deactivate a customer
          */
         @Transactional
-        public void deactivateCustomer(String customerId) {
+        @CacheInvalidate(cacheName = "customer-cache")
+        public void deactivateCustomer(@CacheKey String customerId) {
                 log.info("Deactivating customer: {}", customerId);
 
                 Customer customer = customerRepository.findById(UUID.fromString(customerId))
@@ -235,6 +272,9 @@ public class CustomerUseCase {
                                 saved.getVersion());
 
                 eventPublisher.fire(event);
+
+                // Record metrics
+                customerMetrics.recordCustomerDeactivated();
         }
 
         // ========================================
@@ -244,7 +284,8 @@ public class CustomerUseCase {
         /**
          * Get customer by ID
          */
-        public CustomerDto getCustomerById(String customerId) {
+        @CacheResult(cacheName = "customer-cache")
+        public CustomerDto getCustomerById(@CacheKey String customerId) {
                 Customer customer = customerRepository.findById(UUID.fromString(customerId))
                                 .orElseThrow(() -> new ResourceNotFoundException("Customer", customerId));
                 return CustomerDto.fromEntity(customer);
@@ -278,14 +319,13 @@ public class CustomerUseCase {
          */
         public PageResponse<CustomerDto> searchByName(String name, int page, int size) {
                 List<Customer> customers = customerRepository.searchByName(name, page, size);
+                long total = customerRepository.countByNameSearch(name);
 
                 List<CustomerDto> dtos = customers.stream()
                                 .map(CustomerDto::fromEntity)
                                 .toList();
 
-                // For search, we return what we found (could be improved with separate count
-                // query)
-                return PageResponse.of(dtos, page, size, dtos.size());
+                return PageResponse.of(dtos, page, size, total);
         }
 
         /**
