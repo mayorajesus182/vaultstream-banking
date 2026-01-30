@@ -1,6 +1,7 @@
 package com.vaultstream.customer.infrastructure.security;
 
 import io.quarkus.redis.datasource.RedisDataSource;
+import io.quarkus.redis.datasource.keys.KeyCommands;
 import io.quarkus.redis.datasource.value.ValueCommands;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -30,6 +32,9 @@ class RateLimiterServiceTest {
     @Mock
     ValueCommands<String, Long> valueCommands;
 
+    @Mock
+    KeyCommands<String> keyCommands;
+
     @InjectMocks
     RateLimiterService rateLimiterService;
 
@@ -37,6 +42,7 @@ class RateLimiterServiceTest {
     void setup() throws Exception {
         // Use lenient mocking since lazy init may or may not call this
         lenient().when(redisDS.value(Long.class)).thenReturn(valueCommands);
+        lenient().when(redisDS.key()).thenReturn(keyCommands);
 
         // Set config properties via reflection
         setField("requestLimit", 100);
@@ -61,7 +67,8 @@ class RateLimiterServiceTest {
 
         assertTrue(allowed);
         verify(valueCommands).incr(contains("127.0.0.1"));
-        verify(valueCommands).setex(anyString(), eq(60L), eq(1L));
+        // Verify expire() is called instead of setex() to avoid overwriting the counter
+        verify(keyCommands).expire(anyString(), eq(Duration.ofSeconds(60)));
     }
 
     @Test

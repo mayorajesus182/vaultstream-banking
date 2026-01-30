@@ -1,0 +1,116 @@
+# ============================================================
+# VaultStream Banking - .gitignore
+# ============================================================
+
+# ==================== Maven ====================
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# ==================== IDE - IntelliJ IDEA ====================
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.idea_modules/
+
+# ==================== IDE - Eclipse ====================
+.project
+.classpath
+.settings/
+.metadata/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+
+# ==================== IDE - VS Code ====================
+.vscode/
+*.code-workspace
+
+# ==================== IDE - NetBeans ====================
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+nbactions.xml
+nb-configuration.xml
+
+# ==================== Quarkus ====================
+.quarkus/
+
+# ==================== Logs ====================
+*.log
+logs/
+*.log.*
+
+# ==================== Environment & Secrets ====================
+.env
+.env.*
+*.local
+application-local.yml
+application-local.yaml
+application-local.properties
+secrets/
+*.pem
+*.key
+*.crt
+
+# ==================== Operating System ====================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+# ==================== Docker ====================
+.docker/
+
+# ==================== Test Results ====================
+# Keep reports in CI, but ignore local test outputs
+test-output/
+.allure/
+jacoco.exec
+*.exec
+
+# ==================== Generated Files ====================
+generated-sources/
+generated-test-sources/
+
+# ==================== Kubernetes/OpenShift ====================
+*.kubeconfig
+kubeconfig
+
+# ==================== Terraform (if used) ====================
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# ==================== Miscellaneous ====================
+*.orig
+*.rej
+*.patch
+.cache/
+node_modules/
+npm-debug.log*

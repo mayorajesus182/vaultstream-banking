@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Rate Limiter Service using Redis with atomic operations.
  * 
- * Uses SETEX + INCR pattern with proper atomicity.
+ * Uses INCR + EXPIRE pattern with proper atomicity.
  * Includes Circuit Breaker fallback for Redis failures.
  */
 @Slf4j
@@ -71,12 +71,13 @@ public class RateLimiterService {
                 return isAllowedFallback(ipAddress);
             }
 
-            // Atomic increment with TTL check
+            // Atomic increment
             Long currentCount = cmds.incr(key);
 
             // Only set expiration if this is the first request (counter was just created)
+            // Use expire() instead of setex() to avoid overwriting the incremented value
             if (currentCount != null && currentCount == 1L) {
-                cmds.setex(key, windowSeconds, currentCount);
+                redisDS.key().expire(key, Duration.ofSeconds(windowSeconds));
             }
 
             return currentCount != null && currentCount <= requestLimit;

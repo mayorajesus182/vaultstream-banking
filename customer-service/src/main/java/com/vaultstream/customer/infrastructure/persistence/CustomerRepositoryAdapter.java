@@ -104,6 +104,9 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
 
     @Override
     public List<Customer> searchByName(String name, int page, int size) {
+        if (name == null || name.isBlank()) {
+            return List.of();
+        }
         String searchPattern = "%" + name.toLowerCase() + "%";
         return em.createQuery(
                 "SELECT c FROM CustomerEntity c WHERE LOWER(c.firstName) LIKE :name OR LOWER(c.lastName) LIKE :name",
@@ -156,6 +159,9 @@ public class CustomerRepositoryAdapter implements CustomerRepository {
 
     @Override
     public long countByNameSearch(String name) {
+        if (name == null || name.isBlank()) {
+            return 0L;
+        }
         String searchPattern = "%" + name.toLowerCase() + "%";
         return em.createQuery(
                 "SELECT COUNT(c) FROM CustomerEntity c WHERE LOWER(c.firstName) LIKE :name OR LOWER(c.lastName) LIKE :name",

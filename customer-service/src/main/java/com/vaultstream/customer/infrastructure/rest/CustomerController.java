@@ -6,6 +6,7 @@ import com.vaultstream.customer.application.command.UpdateCustomerCommand;
 import com.vaultstream.customer.application.dto.CustomerDto;
 import com.vaultstream.customer.application.usecase.CustomerUseCase;
 import com.vaultstream.customer.domain.model.CustomerStatus;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
@@ -30,6 +31,7 @@ import java.util.List;
  * REST Controller for Customer operations.
  * 
  * This is the driving adapter in hexagonal architecture.
+ * Secured with role-based access control via OIDC/Keycloak.
  */
 @Slf4j
 @Path("/api/v1/customers")
@@ -38,14 +40,19 @@ import java.util.List;
 @Tag(name = "Customer", description = "Customer management operations")
 public class CustomerController {
 
+        private final CustomerUseCase customerUseCase;
+
         @Inject
-        CustomerUseCase customerUseCase;
+        public CustomerController(CustomerUseCase customerUseCase) {
+                this.customerUseCase = customerUseCase;
+        }
 
         // ========================================
         // Commands (Write Operations)
         // ========================================
 
         @POST
+        @RolesAllowed("admin")
         @Operation(summary = "Create a new customer")
         @APIResponses({
                         @APIResponse(responseCode = "201", description = "Customer created successfully", content = @Content(schema = @Schema(implementation = CustomerDto.class))),
@@ -65,6 +72,7 @@ public class CustomerController {
 
         @PUT
         @Path("/{customerId}")
+        @RolesAllowed({ "admin", "user" })
         @Operation(summary = "Update customer information")
         @APIResponses({
                         @APIResponse(responseCode = "200", description = "Customer updated successfully", content = @Content(schema = @Schema(implementation = CustomerDto.class))),
@@ -84,6 +92,7 @@ public class CustomerController {
 
         @POST
         @Path("/{customerId}/activate")
+        @RolesAllowed("admin")
         @Operation(summary = "Activate a customer")
         @APIResponses({
                         @APIResponse(responseCode = "200", description = "Customer activated", content = @Content(schema = @Schema(implementation = CustomerDto.class))),
@@ -101,6 +110,7 @@ public class CustomerController {
 
         @POST
         @Path("/{customerId}/suspend")
+        @RolesAllowed("admin")
         @Operation(summary = "Suspend a customer")
         @APIResponses({
                         @APIResponse(responseCode = "200", description = "Customer suspended", content = @Content(schema = @Schema(implementation = CustomerDto.class))),

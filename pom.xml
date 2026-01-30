@@ -15,8 +15,8 @@
     <modules>
         <module>vaultstream-common</module>
         <module>customer-service</module>
+        <module>account-service</module>
         <!-- Phase 2 - To be created -->
-        <!-- <module>account-service</module> -->
         <!-- <module>transaction-service</module> -->
         <!-- <module>notification-service</module> -->
         <!-- <module>api-gateway</module> -->

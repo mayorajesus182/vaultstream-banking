@@ -37,20 +37,25 @@ import java.util.UUID;
 @ApplicationScoped
 public class CustomerUseCase {
 
-        @Inject
-        CustomerRepository customerRepository;
+        private final CustomerRepository customerRepository;
+        private final Event<com.vaultstream.common.event.IntegrationEvent> eventPublisher;
+        private final com.vaultstream.customer.application.service.CustomerNumberGenerator customerNumberGenerator;
+        private final com.vaultstream.customer.application.service.CustomerMetrics customerMetrics;
+        private final CacheManager cacheManager;
 
         @Inject
-        Event<com.vaultstream.common.event.IntegrationEvent> eventPublisher;
-
-        @Inject
-        com.vaultstream.customer.application.service.CustomerNumberGenerator customerNumberGenerator;
-
-        @Inject
-        com.vaultstream.customer.application.service.CustomerMetrics customerMetrics;
-
-        @Inject
-        CacheManager cacheManager;
+        public CustomerUseCase(
+                        CustomerRepository customerRepository,
+                        Event<com.vaultstream.common.event.IntegrationEvent> eventPublisher,
+                        com.vaultstream.customer.application.service.CustomerNumberGenerator customerNumberGenerator,
+                        com.vaultstream.customer.application.service.CustomerMetrics customerMetrics,
+                        CacheManager cacheManager) {
+                this.customerRepository = customerRepository;
+                this.eventPublisher = eventPublisher;
+                this.customerNumberGenerator = customerNumberGenerator;
+                this.customerMetrics = customerMetrics;
+                this.cacheManager = cacheManager;
+        }
 
         // ========================================
         // Commands
@@ -74,19 +79,8 @@ public class CustomerUseCase {
                                         "A customer with this national ID already exists");
                 }
 
-                // Map address
-                Address address = null;
-                if (command.getAddress() != null) {
-                        address = Address.builder()
-                                        .street(command.getAddress().getStreet())
-                                        .number(command.getAddress().getNumber())
-                                        .apartment(command.getAddress().getApartment())
-                                        .city(command.getAddress().getCity())
-                                        .state(command.getAddress().getState())
-                                        .postalCode(command.getAddress().getPostalCode())
-                                        .country(command.getAddress().getCountry())
-                                        .build();
-                }
+                // Map address using helper method
+                Address address = mapAddress(command.getAddress());
 
                 // Generate unique customer number
                 String customerNumber = customerNumberGenerator.generate();
@@ -153,17 +147,9 @@ public class CustomerUseCase {
                         customer.updateEmail(command.getEmail());
                 }
 
-                // Update address if provided
+                // Update address if provided using helper method
                 if (command.getAddress() != null) {
-                        Address address = Address.builder()
-                                        .street(command.getAddress().getStreet())
-                                        .number(command.getAddress().getNumber())
-                                        .apartment(command.getAddress().getApartment())
-                                        .city(command.getAddress().getCity())
-                                        .state(command.getAddress().getState())
-                                        .postalCode(command.getAddress().getPostalCode())
-                                        .country(command.getAddress().getCountry())
-                                        .build();
+                        Address address = mapAddress(command.getAddress());
                         customer.updateAddress(address);
                 }
 
@@ -335,5 +321,27 @@ public class CustomerUseCase {
                 return customerRepository.findByStatus(status).stream()
                                 .map(CustomerDto::fromEntity)
                                 .toList();
+        }
+
+        // ========================================
+        // Private Helper Methods
+        // ========================================
+
+        /**
+         * Maps AddressCommand to Address domain object
+         */
+        private Address mapAddress(CreateCustomerCommand.AddressCommand addressCommand) {
+                if (addressCommand == null) {
+                        return null;
+                }
+                return Address.builder()
+                                .street(addressCommand.getStreet())
+                                .number(addressCommand.getNumber())
+                                .apartment(addressCommand.getApartment())
+                                .city(addressCommand.getCity())
+                                .state(addressCommand.getState())
+                                .postalCode(addressCommand.getPostalCode())
+                                .country(addressCommand.getCountry())
+                                .build();
         }
 }

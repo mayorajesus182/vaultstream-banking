@@ -5,9 +5,9 @@ metadata:
   annotations:
     app.openshift.io/vcs-uri: <<unknown>>
     app.quarkus.io/quarkus-version: 3.17.5
-    app.quarkus.io/commit-id: 85073baff229ee682b00cd5e0163ff62dde4811b
+    app.quarkus.io/commit-id: f79af9bc10c0007bcbc7d2481f373ac6408946f3
     app.quarkus.io/vcs-uri: https://github.com/mayorajesus182/vaultstream-banking.git
-    app.quarkus.io/build-timestamp: 2026-01-21 - 22:49:01 +0000
+    app.quarkus.io/build-timestamp: 2026-01-30 - 14:41:18 +0000
   labels:
     app.kubernetes.io/name: customer-service
     app.kubernetes.io/version: 1.0.0-SNAPSHOT
@@ -52,9 +52,9 @@ metadata:
   annotations:
     app.openshift.io/vcs-uri: <<unknown>>
     app.quarkus.io/quarkus-version: 3.17.5
-    app.quarkus.io/commit-id: 85073baff229ee682b00cd5e0163ff62dde4811b
+    app.quarkus.io/commit-id: f79af9bc10c0007bcbc7d2481f373ac6408946f3
     app.quarkus.io/vcs-uri: https://github.com/mayorajesus182/vaultstream-banking.git
-    app.quarkus.io/build-timestamp: 2026-01-21 - 22:49:01 +0000
+    app.quarkus.io/build-timestamp: 2026-01-30 - 14:41:18 +0000
     prometheus.io/scrape: "true"
     prometheus.io/path: /q/metrics
     prometheus.io/port: "8081"
@@ -82,9 +82,9 @@ metadata:
   labels:
     app.kubernetes.io/name: customer-service
     app.kubernetes.io/version: 1.0.0-SNAPSHOT
-  name: openjdk-21
+  name: s2i-java
 spec:
-  dockerImageRepository: registry.access.redhat.com/ubi8/openjdk-21
+  dockerImageRepository: fabric8/s2i-java
   lookupPolicy:
     local: true
 ---
@@ -94,9 +94,9 @@ metadata:
   annotations:
     app.openshift.io/vcs-uri: <<unknown>>
     app.quarkus.io/quarkus-version: 3.17.5
-    app.quarkus.io/commit-id: 85073baff229ee682b00cd5e0163ff62dde4811b
+    app.quarkus.io/commit-id: f79af9bc10c0007bcbc7d2481f373ac6408946f3
     app.quarkus.io/vcs-uri: https://github.com/mayorajesus182/vaultstream-banking.git
-    app.quarkus.io/build-timestamp: 2026-01-21 - 22:49:01 +0000
+    app.quarkus.io/build-timestamp: 2026-01-30 - 14:41:18 +0000
   labels:
     app.kubernetes.io/name: customer-service
     app.kubernetes.io/version: 1.0.0-SNAPSHOT
@@ -113,9 +113,9 @@ metadata:
   annotations:
     app.openshift.io/vcs-uri: <<unknown>>
     app.quarkus.io/quarkus-version: 3.17.5
-    app.quarkus.io/commit-id: 85073baff229ee682b00cd5e0163ff62dde4811b
+    app.quarkus.io/commit-id: f79af9bc10c0007bcbc7d2481f373ac6408946f3
     app.quarkus.io/vcs-uri: https://github.com/mayorajesus182/vaultstream-banking.git
-    app.quarkus.io/build-timestamp: 2026-01-21 - 22:49:01 +0000
+    app.quarkus.io/build-timestamp: 2026-01-30 - 14:41:18 +0000
   labels:
     app.kubernetes.io/name: customer-service
     app.kubernetes.io/version: 1.0.0-SNAPSHOT
@@ -133,7 +133,7 @@ spec:
     sourceStrategy:
       from:
         kind: ImageStreamTag
-        name: openjdk-21:1.20
+        name: s2i-java:2.3
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -141,9 +141,9 @@ metadata:
   annotations:
     app.openshift.io/vcs-uri: <<unknown>>
     app.quarkus.io/quarkus-version: 3.17.5
-    app.quarkus.io/commit-id: 85073baff229ee682b00cd5e0163ff62dde4811b
+    app.quarkus.io/commit-id: f79af9bc10c0007bcbc7d2481f373ac6408946f3
     app.quarkus.io/vcs-uri: https://github.com/mayorajesus182/vaultstream-banking.git
-    app.quarkus.io/build-timestamp: 2026-01-21 - 22:49:01 +0000
+    app.quarkus.io/build-timestamp: 2026-01-30 - 14:41:18 +0000
     prometheus.io/scrape: "true"
     prometheus.io/path: /q/metrics
     prometheus.io/port: "8081"
@@ -166,9 +166,9 @@ spec:
         alpha.image.policy.openshift.io/resolve-names: '*'
         app.openshift.io/vcs-uri: <<unknown>>
         app.quarkus.io/quarkus-version: 3.17.5
-        app.quarkus.io/commit-id: 85073baff229ee682b00cd5e0163ff62dde4811b
+        app.quarkus.io/commit-id: f79af9bc10c0007bcbc7d2481f373ac6408946f3
         app.quarkus.io/vcs-uri: https://github.com/mayorajesus182/vaultstream-banking.git
-        app.quarkus.io/build-timestamp: 2026-01-21 - 22:49:01 +0000
+        app.quarkus.io/build-timestamp: 2026-01-30 - 14:41:18 +0000
         prometheus.io/scrape: "true"
         prometheus.io/path: /q/metrics
         prometheus.io/port: "8081"
@@ -259,9 +259,9 @@ metadata:
   annotations:
     app.openshift.io/vcs-uri: <<unknown>>
     app.quarkus.io/quarkus-version: 3.17.5
-    app.quarkus.io/commit-id: 85073baff229ee682b00cd5e0163ff62dde4811b
+    app.quarkus.io/commit-id: f79af9bc10c0007bcbc7d2481f373ac6408946f3
     app.quarkus.io/vcs-uri: https://github.com/mayorajesus182/vaultstream-banking.git
-    app.quarkus.io/build-timestamp: 2026-01-21 - 22:49:01 +0000
+    app.quarkus.io/build-timestamp: 2026-01-30 - 14:41:18 +0000
   labels:
     app.kubernetes.io/name: customer-service
     app.kubernetes.io/version: 1.0.0-SNAPSHOT

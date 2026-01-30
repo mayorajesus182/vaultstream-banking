@@ -145,4 +145,19 @@ class CustomerRepositoryIT {
             customerRepository.findById(saved.getId());
         });
     }
+
+    @Test
+    @Transactional
+    @DisplayName("searchByName() should return empty list for null or blank input")
+    void searchByNameShouldReturnEmptyForNullOrBlank() {
+        // When
+        List<Customer> resultsNull = customerRepository.searchByName(null, 0, 10);
+        List<Customer> resultsEmpty = customerRepository.searchByName("", 0, 10);
+        List<Customer> resultsBlank = customerRepository.searchByName("   ", 0, 10);
+
+        // Then
+        assertThat(resultsNull).isEmpty();
+        assertThat(resultsEmpty).isEmpty();
+        assertThat(resultsBlank).isEmpty();
+    }
 }

@@ -1,0 +1,160 @@
+{
+    "realm": "vaultstream",
+    "enabled": true,
+    "displayName": "VaultStream Banking",
+    "sslRequired": "external",
+    "registrationAllowed": false,
+    "loginWithEmailAllowed": true,
+    "duplicateEmailsAllowed": false,
+    "resetPasswordAllowed": true,
+    "editUsernameAllowed": false,
+    "bruteForceProtected": true,
+    "accessTokenLifespan": 300,
+    "ssoSessionIdleTimeout": 1800,
+    "ssoSessionMaxLifespan": 36000,
+    "roles": {
+        "realm": [
+            {
+                "name": "admin",
+                "description": "Administrator - Full access to all resources",
+                "composite": false
+            },
+            {
+                "name": "user",
+                "description": "Regular user - Access to own resources only",
+                "composite": false
+            },
+            {
+                "name": "auditor",
+                "description": "Auditor - Read-only access to all resources",
+                "composite": false
+            }
+        ]
+    },
+    "clients": [
+        {
+            "clientId": "customer-service",
+            "name": "Customer Service",
+            "enabled": true,
+            "publicClient": false,
+            "secret": "customer-service-secret",
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": true,
+            "authorizationServicesEnabled": false,
+            "redirectUris": [
+                "http://localhost:8081/*"
+            ],
+            "webOrigins": [
+                "http://localhost:8081"
+            ],
+            "defaultClientScopes": [
+                "web-origins",
+                "roles",
+                "profile",
+                "email"
+            ]
+        },
+        {
+            "clientId": "account-service",
+            "name": "Account Service",
+            "enabled": true,
+            "publicClient": false,
+            "secret": "account-service-secret",
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": true,
+            "serviceAccountsEnabled": true,
+            "authorizationServicesEnabled": false,
+            "redirectUris": [
+                "http://localhost:8082/*"
+            ],
+            "webOrigins": [
+                "http://localhost:8082"
+            ],
+            "defaultClientScopes": [
+                "web-origins",
+                "roles",
+                "profile",
+                "email"
+            ]
+        },
+        {
+            "clientId": "vaultstream-web",
+            "name": "VaultStream Web Application",
+            "enabled": true,
+            "publicClient": true,
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": false,
+            "redirectUris": [
+                "http://localhost:3000/*",
+                "http://localhost:4200/*"
+            ],
+            "webOrigins": [
+                "http://localhost:3000",
+                "http://localhost:4200"
+            ],
+            "defaultClientScopes": [
+                "web-origins",
+                "roles",
+                "profile",
+                "email"
+            ]
+        }
+    ],
+    "users": [
+        {
+            "username": "admin",
+            "enabled": true,
+            "email": "admin@vaultstream.com",
+            "firstName": "Admin",
+            "lastName": "User",
+            "emailVerified": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "admin123",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": [
+                "admin"
+            ]
+        },
+        {
+            "username": "john.doe",
+            "enabled": true,
+            "email": "john.doe@vaultstream.com",
+            "firstName": "John",
+            "lastName": "Doe",
+            "emailVerified": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "user123",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": [
+                "user"
+            ]
+        },
+        {
+            "username": "auditor",
+            "enabled": true,
+            "email": "auditor@vaultstream.com",
+            "firstName": "Audit",
+            "lastName": "User",
+            "emailVerified": true,
+            "credentials": [
+                {
+                    "type": "password",
+                    "value": "auditor123",
+                    "temporary": false
+                }
+            ],
+            "realmRoles": [
+                "auditor"
+            ]
+        }
+    ]
+}
