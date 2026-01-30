@@ -1,0 +1,10 @@
+quarkus:
+  # Disable Redis cache for tests to prevent connection errors
+  cache:
+    redis:
+      enabled: false
+      
+  # Use in-memory for testing instead of Redis
+  redis:
+    devservices:
+      enabled: false

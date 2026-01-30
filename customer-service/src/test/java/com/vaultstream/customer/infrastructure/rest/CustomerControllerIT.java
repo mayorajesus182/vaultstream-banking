@@ -5,10 +5,15 @@ import io.quarkus.redis.datasource.keys.KeyCommands;
 import io.quarkus.redis.datasource.value.ValueCommands;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -18,9 +23,23 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @QuarkusTest
+@TestProfile(CustomerControllerIT.NoCacheProfile.class)
 @DisplayName("Customer REST API Integration")
 @io.quarkus.test.security.TestSecurity(user = "admin", roles = "admin")
 class CustomerControllerIT {
+
+    /**
+     * Test profile that disables caching to avoid Redis connection errors in tests
+     */
+    public static class NoCacheProfile implements QuarkusTestProfile {
+        @Override
+        public Map<String, String> getConfigOverrides() {
+            Map<String, String> config = new HashMap<>();
+            // Disable all caching for this test
+            config.put("quarkus.cache.enabled", "false");
+            return config;
+        }
+    }
 
     private static final String API_BASE = "/api/v1/customers";
 
