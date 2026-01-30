@@ -50,7 +50,7 @@ jobs:
           cache: maven
 
       - name: Build with Maven (Skip Tests)
-        run: mvn -B clean compile -DskipTests --file pom.xml
+        run: mvn -B clean install -DskipTests --file pom.xml
 
       - name: Cache Build Artifacts
         uses: actions/cache@v4
@@ -151,7 +151,7 @@ jobs:
           cache: maven
 
       - name: Run Architecture Tests
-        run: mvn -B test --file customer-service/pom.xml -Dtest=ArchitectureTest
+        run: mvn -B test --file pom.xml -pl customer-service -Dtest=ArchitectureTest
 
   # ========================================
   # Job 5: Security Scan (OWASP)
