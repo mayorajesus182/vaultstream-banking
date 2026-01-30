@@ -46,6 +46,11 @@ public class CustomerMapper {
             java.lang.reflect.Method setVersion = Customer.class.getDeclaredMethod("setVersion", int.class);
             setVersion.setAccessible(true);
             setVersion.invoke(customer, entity.getVersion());
+
+            // FIX: Set status from entity (Customer.create hardcodes PENDING_VERIFICATION)
+            java.lang.reflect.Field statusField = Customer.class.getDeclaredField("status");
+            statusField.setAccessible(true);
+            statusField.set(customer, entity.getStatus());
         } catch (Exception e) {
             throw new RuntimeException("Failed to map CustomerEntity to Customer", e);
         }

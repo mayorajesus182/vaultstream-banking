@@ -53,9 +53,15 @@ class CustomerEventProducerIT {
         customerUseCase.activateCustomer(customer.getId().toString());
 
         // Then
+        // Then
         await().until(() -> events.received().size() > 0);
-        Message<IntegrationEvent> message = events.received().get(0);
-        IntegrationEvent event = message.getPayload();
+        Message<String> message = events.received().get(0);
+        String payload = message.getPayload();
+
+        // Deserialize manually because producer sends String
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        IntegrationEvent event = objectMapper.readValue(payload, IntegrationEvent.class);
 
         assertThat(event.getAggregateIdAsString()).isEqualTo(customer.getId().toString());
         assertThat(event.getEventType()).isEqualTo("CustomerActivated");
