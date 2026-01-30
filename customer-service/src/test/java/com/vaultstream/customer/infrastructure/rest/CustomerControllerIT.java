@@ -19,6 +19,7 @@ import static org.mockito.Mockito.when;
 
 @QuarkusTest
 @DisplayName("Customer REST API Integration")
+@io.quarkus.test.security.TestSecurity(user = "admin", roles = "admin")
 class CustomerControllerIT {
 
     private static final String API_BASE = "/api/v1/customers";

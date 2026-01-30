@@ -37,7 +37,6 @@ class CustomerEventProducerIT {
     CustomerRepository customerRepository;
 
     @Test
-    @Transactional
     @DisplayName("should publish CustomerActivatedEvent to Kafka")
     void shouldPublishEventToKafka() {
         // Given
@@ -48,7 +47,7 @@ class CustomerEventProducerIT {
                 "+1234567890", LocalDate.of(1990, 1, 1), "EVENT-ID-001", null, CustomerType.INDIVIDUAL);
         // Manually set ID to avoid issues if save is mocked (but here it is real H2)
         // Actually save to DB so activation works
-        customerRepository.save(customer);
+        saveCustomer(customer);
 
         // When
         customerUseCase.activateCustomer(customer.getId().toString());
@@ -60,5 +59,10 @@ class CustomerEventProducerIT {
 
         assertThat(event.getAggregateIdAsString()).isEqualTo(customer.getId().toString());
         assertThat(event.getEventType()).isEqualTo("CustomerActivated");
+    }
+
+    @Transactional
+    void saveCustomer(Customer customer) {
+        customerRepository.save(customer);
     }
 }

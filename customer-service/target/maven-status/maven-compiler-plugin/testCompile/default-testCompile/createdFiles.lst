@@ -1,0 +1,14 @@
+com\vaultstream\customer\infrastructure\persistence\CustomerRepositoryIT.class
+com\vaultstream\customer\domain\model\CustomerTest$UpdateTests.class
+com\vaultstream\customer\infrastructure\messaging\CustomerEventProducerIT.class
+com\vaultstream\customer\domain\model\CustomerTest.class
+com\vaultstream\customer\infrastructure\health\HealthCheckIT.class
+com\vaultstream\customer\infrastructure\security\RateLimiterServiceTest.class
+com\vaultstream\customer\application\usecase\CustomerUseCaseTest.class
+com\vaultstream\customer\infrastructure\rest\CustomerControllerIT.class
+com\vaultstream\customer\architecture\ArchitectureTest.class
+com\vaultstream\customer\domain\model\AddressTest.class
+com\vaultstream\customer\domain\model\CustomerTest$CreateTests.class
+com\vaultstream\customer\domain\model\CustomerTest$HelperMethodTests.class
+com\vaultstream\customer\domain\model\CustomerTest$StatusTransitionTests.class
+com\vaultstream\customer\application\service\CustomerNumberGeneratorTest.class
