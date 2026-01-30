@@ -1,6 +1,7 @@
 package com.vaultstream.customer.infrastructure.messaging;
 
 import com.vaultstream.common.event.IntegrationEvent;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vaultstream.customer.application.usecase.CustomerUseCase;
 import com.vaultstream.customer.domain.model.Customer;
 import com.vaultstream.customer.domain.model.CustomerType;
@@ -38,9 +39,9 @@ class CustomerEventProducerIT {
 
     @Test
     @DisplayName("should publish CustomerActivatedEvent to Kafka")
-    void shouldPublishEventToKafka() {
+    void shouldPublishEventToKafka() throws Exception {
         // Given
-        InMemorySink<IntegrationEvent> events = connector.sink("customer-events-out");
+        InMemorySink<String> events = connector.sink("customer-events-out");
 
         Customer customer = Customer.create(
                 "CUST-EVENT-001", "Event", "Test", "event.test@example.com",
